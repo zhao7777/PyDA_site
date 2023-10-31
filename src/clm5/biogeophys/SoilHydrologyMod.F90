@@ -17,7 +17,9 @@ module SoilHydrologyMod
   use TemperatureType   , only : temperature_type
   use LandunitType      , only : lun                
   use ColumnType        , only : col                
-  use PatchType         , only : patch                
+  use PatchType         , only : patch       
+  use pftconMod         , only : pftcon
+
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -152,6 +154,7 @@ contains
          snl              =>    col%snl                             , & ! Input:  [integer  (:)   ]  minus number of snow layers                        
          dz               =>    col%dz                              , & ! Input:  [real(r8) (:,:) ]  layer depth (m)                                 
 
+         fff_pftcon       =>    pftcon%fff                          , & ! Input:  [real(r8) (:)   ]  decay factor (m-1)
          sucsat           =>    soilstate_inst%sucsat_col           , & ! Input:  [real(r8) (:,:) ]  minimum soil suction (mm)                       
          watsat           =>    soilstate_inst%watsat_col           , & ! Input:  [real(r8) (:,:) ]  volumetric soil water at saturation (porosity)  
          wtfact           =>    soilstate_inst%wtfact_col           , & ! Input:  [real(r8) (:)   ]  maximum saturated fraction for a gridcell         
@@ -210,7 +213,7 @@ contains
 
       do fc = 1, num_hydrologyc
          c = filter_hydrologyc(fc)
-         fff(c) = 0.5_r8
+         fff(c) = fff_pftcon
          if (use_vichydro) then 
             top_moist(c) = 0._r8
             top_ice(c) = 0._r8
