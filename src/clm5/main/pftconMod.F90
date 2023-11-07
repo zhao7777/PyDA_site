@@ -207,7 +207,8 @@ module pftconMod
 
      ! added parameters - MK
      real(r8) :: fff         ! Soil hydrology parameter: decay factor for fractional saturated area (1/m)     
-     write(*, *) 'fff    = ',     this%fff, ' (Description: Value of fff used in the calculation)'
+     real(r8) :: b_slope     ! Relation of %Clay vs retention curve slope (b): linear fit slope
+
 
      ! pft paraemeters for fire code
      real(r8), allocatable :: cc_leaf       (:)
@@ -970,6 +971,16 @@ contains
     ! added parameters - MK
     call ncd_io('fff', this%fff, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('b_slope', this%b_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    if (masterproc) then
+       write(iulog,*) '------Hydraulic property parameters:------'
+       write(iulog,*) 'fff    = ',         this%fff
+       write(iulog,*) 'b_slope    = ',     this%b_slope
+    end if
+
 
     !
     ! Constants
