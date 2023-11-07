@@ -157,10 +157,11 @@ contains
     integer            :: begp, endp
     integer            :: begc, endc
     integer            :: begg, endg
-    !-----------------------------------------------------------------------
-    associate(                                                        & ! MK: added associations for hydraulic parameters
-         b_slope       =>    pftcon%b_slope                         , & ! Slope of %Clay vs. retention curve slope (b)
-         )
+    !-----------------------------------------------------------------------       
+    associate(                                                       & 
+        fff_pftcon       =>    pftcon%fff                          , & ! Input:  [real(r8) (:)   ]  decay factor (m-1)
+        b_slope          =>    pftcon%b_slope                        & ! Slope of %Clay vs. retention curve slope (b)
+        )
          
     begp = bounds%begp; endp= bounds%endp
     begc = bounds%begc; endc= bounds%endc
@@ -629,6 +630,8 @@ contains
     deallocate(sand3d, clay3d, organic3d)
     deallocate(zisoifl, zsoifl, dzsoifl)
 
+  end associate
+  
   end subroutine SoilStateInitTimeConst
 
 end module SoilStateInitTimeConstMod
