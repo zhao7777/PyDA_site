@@ -158,11 +158,17 @@ contains
     integer            :: begc, endc
     integer            :: begg, endg
     !-----------------------------------------------------------------------       
-    associate(                                                       & 
-        fff_pftcon       =>    pftcon%fff                          , & ! Input:  [real(r8) (:)   ]  decay factor (m-1)
-        b_slope          =>    pftcon%b_slope                        & ! Slope of %Clay vs. retention curve slope (b)
+    associate(                                                        & 
+        psis_slope        =>    pftcon%psis_slope                   , & ! Slope of %Sand vs. soil matric potential 
+        psis_intercept    =>    pftcon%psis_intercept               , & ! Intercept of %Sand vs. soil matric potential
+        ks_slope          =>    pftcon%ks_slope                     , & ! Slope of %Sand vs. hydraulic conductivity
+        ks_intercept      =>    pftcon%ks_intercept                 , & ! Intercept of %Sand vs. hydraulic conductivity
+        thetas_slope      =>    pftcon%thetas_slope                 , & ! Slope of %Sand vs. porosity
+        thetas_intercept  =>    pftcon%thetas_intercept             , & ! Intercept of %Sand vs. porosity 
+        b_intercept       =>    pftcon%b_intercept                  , & ! Intercept of %Clay vs. retention curve slope 
+        b_slope           =>    pftcon%b_slope                        & ! Slope of %Clay vs. retention curve slope 
         )
-         
+  
     begp = bounds%begp; endp= bounds%endp
     begc = bounds%begc; endc= bounds%endc
     begg = bounds%begg; endg= bounds%endg
@@ -467,7 +473,7 @@ contains
                 soilstate_inst%bd_col(c,lev)        = (1._r8 - soilstate_inst%watsat_col(c,lev))*2.7e3_r8 
                 soilstate_inst%watsat_col(c,lev)    = (1._r8 - om_frac) * soilstate_inst%watsat_col(c,lev) + om_watsat*om_frac
                 tkm                                 = (1._r8-om_frac) * (8.80_r8*sand+2.92_r8*clay)/(sand+clay)+om_tkm*om_frac ! W/(m K)
-                soilstate_inst%bsw_col(c,lev)       = (1._r8-om_frac) * (2.91_r8 + b_slope*clay) + om_frac*om_b   
+                soilstate_inst%bsw_col(c,lev)       = (1._r8-om_frac) * (b_intercept + b_slope*clay) + om_frac*om_b   
                 soilstate_inst%sucsat_col(c,lev)    = (1._r8-om_frac) * soilstate_inst%sucsat_col(c,lev) + om_sucsat*om_frac  
                 soilstate_inst%hksat_min_col(c,lev) = xksat
 
@@ -553,11 +559,11 @@ contains
                 om_frac = 0.0_r8
              end if
 
-             soilstate_inst%watsat_col(c,lev) = 0.489_r8 - 0.00126_r8*sand
+             soilstate_inst%watsat_col(c,lev) = thetas_intercept + thetas_slope*sand
 
-             soilstate_inst%bsw_col(c,lev)    = 2.91 + b_slope*clay
+             soilstate_inst%bsw_col(c,lev)    = b_intercept + b_slope*clay
 
-             soilstate_inst%sucsat_col(c,lev) = 10._r8 * ( 10._r8**(1.88_r8-0.0131_r8*sand) )
+             soilstate_inst%sucsat_col(c,lev) = 10._r8 * ( 10._r8**(psis_intercept+psis_slope*sand) )
 
              bd = (1._r8-soilstate_inst%watsat_col(c,lev))*2.7e3_r8
 
@@ -565,11 +571,11 @@ contains
 
              tkm = (1._r8-om_frac)*(8.80_r8*sand+2.92_r8*clay)/(sand+clay) + om_tkm * om_frac ! W/(m K)
 
-             soilstate_inst%bsw_col(c,lev)    = (1._r8-om_frac)*(2.91_r8 + b_slope*clay) + om_frac * om_b_lake
+             soilstate_inst%bsw_col(c,lev)    = (1._r8-om_frac)*(b_intercept + b_slope*clay) + om_frac * om_b_lake
 
              soilstate_inst%sucsat_col(c,lev) = (1._r8-om_frac)*soilstate_inst%sucsat_col(c,lev) + om_sucsat_lake * om_frac
 
-             xksat = 0.0070556 *( 10.**(-0.884+0.0153*sand) ) ! mm/s
+             xksat = 0.0070556 *( 10.**(ks_intercept+ks_slope*sand) ) ! mm/s
 
              ! perc_frac is zero unless perf_frac greater than percolation threshold
              if (om_frac > pc_lake) then
@@ -584,7 +590,7 @@ contains
 
              ! uncon_hksat is series addition of mineral/organic conductivites
              if (om_frac < 1._r8) then
-                xksat = 0.0070556 *( 10.**(-0.884+0.0153*sand) ) ! mm/s
+                xksat = 0.0070556 *( 10.**(ks_intercept+ks_slope*sand) ) ! mm/s
                 uncon_hksat = uncon_frac/((1._r8-om_frac)/xksat + ((1._r8-perc_frac)*om_frac)/om_hksat_lake)
              else
                 uncon_hksat = 0._r8

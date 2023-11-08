@@ -207,8 +207,14 @@ module pftconMod
 
      ! added parameters - MK
      real(r8) :: fff         ! Soil hydrology parameter: decay factor for fractional saturated area (1/m)     
-     real(r8) :: b_slope     ! Relation of %Clay vs retention curve slope (b): linear fit slope
-
+     real(r8) :: psis_slope      ! Slope of %Sand vs. soil matric potential 
+     real(r8) :: psis_intercept  ! Intercept of %Sand vs. soil matric potential
+     real(r8) :: ks_slope        ! Slope of %Sand vs. hydraulic conductivity
+     real(r8) :: ks_intercept    ! Intercept of %Sand vs. hydraulic conductivity
+     real(r8) :: thetas_slope    ! Slope of %Sand vs. porosity
+     real(r8) :: thetas_intercept ! Intercept of %Sand vs. porosity 
+     real(r8) :: b_intercept      ! Intercept of %Clay vs. retention curve slope 
+     real(r8) :: b_slope          ! Slope of %Clay vs. retention curve slope 
 
      ! pft paraemeters for fire code
      real(r8), allocatable :: cc_leaf       (:)
@@ -975,12 +981,39 @@ contains
     call ncd_io('b_slope', this%b_slope, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
     
+    call ncd_io('b_intercept', this%b_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('thetas_slope', this%thetas_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('thetas_intercept', this%thetas_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('log_ks_slope', this%ks_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('log_ks_intercept', this%ks_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('log_psis_slope', this%psis_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('log_psis_intercept', this%psis_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
     if (masterproc) then
        write(iulog,*) '------Hydraulic property parameters:------'
        write(iulog,*) 'fff    = ',         this%fff
        write(iulog,*) 'b_slope    = ',     this%b_slope
+       write(iulog,*) 'b_intercept    = ',     this%b_intercept
+       write(iulog,*) 'thetas_slope    = ',     this%thetas_slope
+       write(iulog,*) 'thetas_intercept    = ',     this%thetas_intercept
+       write(iulog,*) 'ks_slope    = ',     this%ks_slope
+       write(iulog,*) 'ks_intercept    = ',     this%ks_intercept
+       write(iulog,*) 'psis_slope    = ',     this%psis_slope
+       write(iulog,*) 'psis_intercept    = ',     this%psis_intercept
     end if
-
 
     !
     ! Constants
