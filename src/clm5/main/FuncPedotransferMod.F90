@@ -6,6 +6,10 @@ module FuncPedotransferMod
 !currenty, only the Clapp-Hornberg formulation is used.
 !HISTORY:
 !created by Jinyun Tang, Mar.1st, 2014
+
+  use pftconMod   , only : pftcon  !MK: added for hydrology parameters
+  use clm_varctl  , only : iulog !MK: added to check output
+  
 implicit none
   private
   public :: pedotransf
@@ -15,6 +19,7 @@ implicit none
   integer, parameter :: cosby_1984_table5 = 0    !by default uses this form
   integer, parameter :: cosby_1984_table4 = 1
   integer, parameter :: noilhan_lacarrere_1995 = 2
+  integer, parameter :: cosby_1984_param = 3.    !MK: parameterised version of the Cosby pedotransfer function
   integer :: ipedof0
 contains
 
@@ -25,7 +30,7 @@ contains
    implicit none
    
    
-   ipedof0 = cosby_1984_table5         !the default pedotransfer function
+   ipedof0 = cosby_1984_param         !the default pedotransfer function MK: set to parameterised version
    end subroutine init_pedof
    
    subroutine pedotransf(ipedof, sand, clay, watsat, bsw, sucsat, xksat)
@@ -51,6 +56,8 @@ contains
       call pedotransf_noilhan_lacarrere1995(sand, clay, watsat, bsw, sucsat, xksat) 
    case (cosby_1984_table5)  
       call pedotransf_cosby1984_table5(sand, clay, watsat, bsw, sucsat, xksat)
+   case (cosby_1984_param)  
+      call pedotransf_cosby1984_param(sand, clay, watsat, bsw, sucsat, xksat)      
    case default
       call endrun(subname // ':: a pedotransfer function must be specified!')  
    end select
@@ -101,7 +108,42 @@ contains
    xksat         = 0.0070556 *( 10.**(-0.884+0.0153*sand) ) ! mm/s, from table 5 
       
    end subroutine pedotransf_cosby1984_table5
-   
+  
+!------------------------------------------------------------------------------------------
+   subroutine pedotransf_cosby1984_param(sand, clay, watsat, bsw, sucsat, xksat)
+   ! MK: adapted to accept parameters from pft parameterfile
+   !DESCRIPTIONS
+   !compute hydraulic properties based on functions derived from Table 5 in cosby et al, 1984
+
+   use shr_kind_mod         , only : r8 => shr_kind_r8   
+   implicit none
+   real(r8), intent(in) :: sand   !% sand
+   real(r8), intent(in) :: clay   !% clay
+   real(r8), intent(out):: watsat !v/v saturate moisture
+   real(r8), intent(out):: bsw    !b shape parameter
+   real(r8), intent(out):: sucsat !mm, soil matric potential
+   real(r8), intent(out):: xksat  !mm/s, saturated hydraulic conductivity
+    
+   associate(                                                        & 
+        psis_slope        =>    pftcon%psis_slope                   , & ! Slope of %Sand vs. soil matric potential 
+        psis_intercept    =>    pftcon%psis_intercept               , & ! Intercept of %Sand vs. soil matric potential
+        ks_slope          =>    pftcon%ks_slope                     , & ! Slope of %Sand vs. hydraulic conductivity
+        ks_intercept      =>    pftcon%ks_intercept                 , & ! Intercept of %Sand vs. hydraulic conductivity
+        thetas_slope      =>    pftcon%thetas_slope                 , & ! Slope of %Sand vs. porosity
+        thetas_intercept  =>    pftcon%thetas_intercept             , & ! Intercept of %Sand vs. porosity 
+        b_intercept       =>    pftcon%b_intercept                  , & ! Intercept of %Clay vs. retention curve slope 
+        b_slope           =>    pftcon%b_slope                        & ! Slope of %Clay vs. retention curve slope 
+        )
+        
+   !Cosby et al. Table 5     
+   watsat = thetas_intercept + thetas_slope*sand
+   bsw    = b_intercept + b_slope*clay
+   sucsat = 10._r8 * ( 10._r8**(psis_intercept+psis_slope*sand) )            
+   xksat         = 0.0070556 *( 10.**(ks_intercept+ks_slope*sand) ) ! mm/s, from table 5 
+      
+   end associate
+   end subroutine pedotransf_cosby1984_param
+
 !------------------------------------------------------------------------------------------
    subroutine pedotransf_noilhan_lacarrere1995(sand, clay, watsat, bsw, sucsat, xksat)
    !
