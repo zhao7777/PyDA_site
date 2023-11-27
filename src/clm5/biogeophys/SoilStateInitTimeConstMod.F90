@@ -118,16 +118,10 @@ contains
     ! !LOCAL VARIABLES:
     integer            :: p, lev, c, l, g, j            ! indices
     real(r8)           :: om_frac                       ! organic matter fraction
-    real(r8)           :: om_tkm         = 0.25_r8      ! thermal conductivity of organic soil (Farouki, 1986) [W/m/K]
-    real(r8)           :: om_watsat_lake = 0.9_r8       ! porosity of organic soil
-    real(r8)           :: om_hksat_lake  = 0.1_r8       ! saturated hydraulic conductivity of organic soil [mm/s]
-    real(r8)           :: om_sucsat_lake = 10.3_r8      ! saturated suction for organic matter (Letts, 2000)
-    real(r8)           :: om_b_lake      = 2.7_r8       ! Clapp Hornberger paramater for oragnic soil (Letts, 2000) (lake)
     real(r8)           :: om_watsat                     ! porosity of organic soil
     real(r8)           :: om_hksat                      ! saturated hydraulic conductivity of organic soil [mm/s]
     real(r8)           :: om_sucsat                     ! saturated suction for organic matter (mm)(Letts, 2000)
     real(r8)           :: om_csol        = 2.5_r8       ! heat capacity of peat soil *10^6 (J/K m3) (Farouki, 1986)
-    real(r8)           :: om_tkd         = 0.05_r8      ! thermal conductivity of dry organic soil (Farouki, 1981)
     real(r8)           :: om_b                          ! Clapp Hornberger paramater for oragnic soil (Letts, 2000)
     real(r8)           :: zsapric        = 0.5_r8       ! depth (m) that organic matter takes on characteristics of sapric peat
     real(r8)           :: pcalpha        = 0.5_r8       ! percolation threshold
@@ -166,7 +160,16 @@ contains
         thetas_slope      =>    pftcon%thetas_slope                 , & ! Slope of %Sand vs. porosity
         thetas_intercept  =>    pftcon%thetas_intercept             , & ! Intercept of %Sand vs. porosity 
         b_intercept       =>    pftcon%b_intercept                  , & ! Intercept of %Clay vs. retention curve slope 
-        b_slope           =>    pftcon%b_slope                        & ! Slope of %Clay vs. retention curve slope 
+        b_slope           =>    pftcon%b_slope                      , & ! Slope of %Clay vs. retention curve slope 
+        om_thetas_surf    =>    pftcon%om_thetas_surf               , & ! porosity @ surface   
+        om_b_surf         =>    pftcon%om_b_surf                    , & ! b @ surface    
+        om_psis_surf      =>    pftcon%om_psis_surf                 , & ! suction @ surface      
+        om_ks_surf        =>    pftcon%om_ks_surf                   , & ! hydraulic conductivity @ surface    
+        om_thetas_diff    =>    pftcon%om_thetas_diff               , & ! decrease in porosity deeper in column (defined by zsapric)    
+        om_b_diff         =>    pftcon%om_b_diff                    , & ! increase in b deeper in column    
+        om_psis_diff      =>    pftcon%om_psis_diff                 , & ! decrease in psi deeper in column    
+        om_tkdry          =>    pftcon%om_tkdry                     , & ! thermal conductivity of dry organic soil [W/m/K]      
+        om_tkwet          =>    pftcon%om_tkwet                       & ! thermal conductivity of saturated organic soil [W/m/K]  
         )
   
     begp = bounds%begp; endp= bounds%endp
@@ -404,13 +407,13 @@ contains
                 if (lev .eq. 1) then
                    clay = clay3d(g,1)
                    sand = sand3d(g,1)
-                   om_frac = organic3d(g,1)/organic_max 
+                   om_frac = min(organic3d(g,1)/organic_max, 1._r8)
                 else if (lev <= nlevsoi) then
                    do j = 1,nlevsoifl-1
                       if (zisoi(lev) >= zisoifl(j) .AND. zisoi(lev) < zisoifl(j+1)) then
                          clay = clay3d(g,j+1)
                          sand = sand3d(g,j+1)
-                         om_frac = organic3d(g,j+1)/organic_max    
+                         om_frac = min(organic3d(g,j+1)/organic_max, 1._r8)   
                       endif
                    end do
                 else
@@ -423,9 +426,9 @@ contains
                    clay = clay3d(g,lev)
                    sand = sand3d(g,lev)
                    if ( organic_frac_squared )then
-                      om_frac = (organic3d(g,lev)/organic_max)**2._r8
+                      om_frac = min(organic3d(g,lev)/organic_max, 1._r8)**2._r8
                    else
-                      om_frac = organic3d(g,lev)/organic_max
+                      om_frac = min(organic3d(g,lev)/organic_max, 1._r8)
                    end if
                 else
                    clay = clay3d(g,nlevsoi)
@@ -465,14 +468,14 @@ contains
                 call pedotransf(ipedof, sand, clay, &
                      soilstate_inst%watsat_col(c,lev), soilstate_inst%bsw_col(c,lev), soilstate_inst%sucsat_col(c,lev), xksat)
 
-                om_watsat         = max(0.93_r8 - 0.1_r8   *(zsoi(lev)/zsapric), 0.83_r8)
-                om_b              = min(2.7_r8  + 9.3_r8   *(zsoi(lev)/zsapric), 12.0_r8)
-                om_sucsat         = min(10.3_r8 - 0.2_r8   *(zsoi(lev)/zsapric), 10.1_r8)
-                om_hksat          = max(0.28_r8 - 0.2799_r8*(zsoi(lev)/zsapric), xksat)
+                om_watsat         = max(om_thetas_surf - om_thetas_diff   *(zsoi(lev)/zsapric), om_thetas_surf - om_thetas_diff)
+                om_b              = min(om_b_surf  + om_b_diff   *(zsoi(lev)/zsapric), om_b_surf  + om_b_diff)
+                om_sucsat         = max(om_psis_surf - om_psis_diff   *(zsoi(lev)/zsapric), om_psis_surf - om_psis_diff)
+                om_hksat          = max(om_ks_surf - (om_ks_surf-0.0001)*(zsoi(lev)/zsapric), xksat)
 
                 soilstate_inst%bd_col(c,lev)        = (1._r8 - soilstate_inst%watsat_col(c,lev))*2.7e3_r8 
                 soilstate_inst%watsat_col(c,lev)    = (1._r8 - om_frac) * soilstate_inst%watsat_col(c,lev) + om_watsat*om_frac
-                tkm                                 = (1._r8-om_frac) * (8.80_r8*sand+2.92_r8*clay)/(sand+clay)+om_tkm*om_frac ! W/(m K)
+                tkm                                 = (1._r8-om_frac) * (8.80_r8*sand+2.92_r8*clay)/(sand+clay)+om_tkwet*om_frac ! W/(m K)
                 soilstate_inst%bsw_col(c,lev)       = (1._r8-om_frac) * (b_intercept + b_slope*clay) + om_frac*om_b   
                 soilstate_inst%sucsat_col(c,lev)    = (1._r8-om_frac) * soilstate_inst%sucsat_col(c,lev) + om_sucsat*om_frac  
                 soilstate_inst%hksat_min_col(c,lev) = xksat
@@ -502,7 +505,7 @@ contains
                 soilstate_inst%tksatu_col(c,lev) = soilstate_inst%tkmg_col(c,lev)*0.57_r8**soilstate_inst%watsat_col(c,lev)
 
                 soilstate_inst%tkdry_col(c,lev)  = ((0.135_r8*soilstate_inst%bd_col(c,lev) + 64.7_r8) / &
-                     (2.7e3_r8 - 0.947_r8*soilstate_inst%bd_col(c,lev)))*(1._r8-om_frac) + om_tkd*om_frac  
+                     (2.7e3_r8 - 0.947_r8*soilstate_inst%bd_col(c,lev)))*(1._r8-om_frac) + om_tkdry*om_frac  
 
                 soilstate_inst%csol_col(c,lev)   = ((1._r8-om_frac)*(2.128_r8*sand+2.385_r8*clay) / (sand+clay) + &
                      om_csol*om_frac)*1.e6_r8  ! J/(m3 K)
@@ -549,9 +552,9 @@ contains
                 clay    =  soilstate_inst%cellclay_col(c,lev)
                 sand    =  soilstate_inst%cellsand_col(c,lev)
                 if ( organic_frac_squared )then
-                   om_frac = (soilstate_inst%cellorg_col(c,lev)/organic_max)**2._r8
+                   om_frac = min(soilstate_inst%cellorg_col(c,lev)/organic_max, 1._r8)**2._r8
                 else
-                   om_frac = soilstate_inst%cellorg_col(c,lev)/organic_max
+                   om_frac = min(soilstate_inst%cellorg_col(c,lev)/organic_max, 1._r8)
                 end if
              else
                 clay    = soilstate_inst%cellclay_col(c,nlevsoi)
@@ -567,13 +570,13 @@ contains
 
              bd = (1._r8-soilstate_inst%watsat_col(c,lev))*2.7e3_r8
 
-             soilstate_inst%watsat_col(c,lev) = (1._r8 - om_frac)*soilstate_inst%watsat_col(c,lev) + om_watsat_lake * om_frac
+             soilstate_inst%watsat_col(c,lev) = (1._r8 - om_frac)*soilstate_inst%watsat_col(c,lev) + om_thetas_surf * om_frac
 
-             tkm = (1._r8-om_frac)*(8.80_r8*sand+2.92_r8*clay)/(sand+clay) + om_tkm * om_frac ! W/(m K)
+             tkm = (1._r8-om_frac)*(8.80_r8*sand+2.92_r8*clay)/(sand+clay) + om_tkwet * om_frac ! W/(m K)
 
-             soilstate_inst%bsw_col(c,lev)    = (1._r8-om_frac)*(b_intercept + b_slope*clay) + om_frac * om_b_lake
+             soilstate_inst%bsw_col(c,lev)    = (1._r8-om_frac)*(b_intercept + b_slope*clay) + om_frac * om_b_surf
 
-             soilstate_inst%sucsat_col(c,lev) = (1._r8-om_frac)*soilstate_inst%sucsat_col(c,lev) + om_sucsat_lake * om_frac
+             soilstate_inst%sucsat_col(c,lev) = (1._r8-om_frac)*soilstate_inst%sucsat_col(c,lev) + om_psis_surf * om_frac
 
              xksat = 0.0070556 *( 10.**(ks_intercept+ks_slope*sand) ) ! mm/s
 
@@ -591,16 +594,16 @@ contains
              ! uncon_hksat is series addition of mineral/organic conductivites
              if (om_frac < 1._r8) then
                 xksat = 0.0070556 *( 10.**(ks_intercept+ks_slope*sand) ) ! mm/s
-                uncon_hksat = uncon_frac/((1._r8-om_frac)/xksat + ((1._r8-perc_frac)*om_frac)/om_hksat_lake)
+                uncon_hksat = uncon_frac/((1._r8-om_frac)/xksat + ((1._r8-perc_frac)*om_frac)/om_ks_surf)
              else
                 uncon_hksat = 0._r8
              end if
 
-             soilstate_inst%hksat_col(c,lev)  = uncon_frac*uncon_hksat + (perc_frac*om_frac)*om_hksat_lake
+             soilstate_inst%hksat_col(c,lev)  = uncon_frac*uncon_hksat + (perc_frac*om_frac)*om_ks_surf
              soilstate_inst%tkmg_col(c,lev)   = tkm ** (1._r8- soilstate_inst%watsat_col(c,lev))
              soilstate_inst%tksatu_col(c,lev) = soilstate_inst%tkmg_col(c,lev)*0.57_r8**soilstate_inst%watsat_col(c,lev)
              soilstate_inst%tkdry_col(c,lev)  = ((0.135_r8*bd + 64.7_r8) / (2.7e3_r8 - 0.947_r8*bd))*(1._r8-om_frac) + &
-                                       om_tkd * om_frac
+                                       om_tkdry * om_frac
              soilstate_inst%csol_col(c,lev)   = ((1._r8-om_frac)*(2.128_r8*sand+2.385_r8*clay) / (sand+clay) +   &
                                        om_csol * om_frac)*1.e6_r8  ! J/(m3 K)
              soilstate_inst%watdry_col(c,lev) = soilstate_inst%watsat_col(c,lev) &

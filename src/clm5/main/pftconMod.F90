@@ -216,6 +216,17 @@ module pftconMod
      real(r8) :: b_intercept      ! Intercept of %Clay vs. retention curve slope 
      real(r8) :: b_slope          ! Slope of %Clay vs. retention curve slope 
 
+     ! added parameters - MK, related to organic matter properties
+     real(r8) :: om_thetas_surf         ! porosity @ surface   
+     real(r8) :: om_b_surf         ! b @ surface    
+     real(r8) :: om_psis_surf         ! suction @ surface      
+     real(r8) :: om_ks_surf         ! hydraulic conductivity @ surface    
+     real(r8) :: om_thetas_diff         ! decrease in porosity deeper in column (defined by zsapric)    
+     real(r8) :: om_b_diff         ! increase in b deeper in column    
+     real(r8) :: om_psis_diff         ! decrease in psi deeper in column    
+     real(r8) :: om_tkdry         ! thermal conductivity of dry organic soil [W/m/K]      
+     real(r8) :: om_tkwet         ! thermal conductivity of saturated organic soil [W/m/K]  
+
      ! pft paraemeters for fire code
      real(r8), allocatable :: cc_leaf       (:)
      real(r8), allocatable :: cc_lstem      (:)
@@ -1001,7 +1012,36 @@ contains
    
     call ncd_io('log_psis_intercept', this%psis_intercept, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    ! organic parameters
+    call ncd_io('om_thetas_surf', this%om_thetas_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_b_surf', this%om_b_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_psis_surf', this%om_psis_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_ks_surf', this%om_ks_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_thetas_diff', this%om_thetas_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_b_diff', this%om_b_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_psis_diff', this%om_psis_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_tkdry', this%om_tkdry, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_tkwet', this%om_tkwet, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
    
+
     if (masterproc) then
        write(iulog,*) '------Hydraulic property parameters:------'
        write(iulog,*) 'fff    = ',         this%fff
@@ -1013,6 +1053,18 @@ contains
        write(iulog,*) 'ks_intercept    = ',     this%ks_intercept
        write(iulog,*) 'psis_slope    = ',     this%psis_slope
        write(iulog,*) 'psis_intercept    = ',     this%psis_intercept
+       
+       write(iulog,*) '------Organic soil property parameters:------'
+       write(iulog,*) 'om_thetas_surf    = ',         this%om_thetas_surf
+       write(iulog,*) 'om_b_surf    = ',         this%om_b_surf
+       write(iulog,*) 'om_psis_surf    = ',         this%om_psis_surf
+       write(iulog,*) 'om_ks_surf    = ',         this%om_ks_surf
+       write(iulog,*) 'om_thetas_diff    = ',         this%om_thetas_diff
+       write(iulog,*) 'om_b_diff    = ',         this%om_b_diff
+       write(iulog,*) 'om_psis_diff    = ',         this%om_psis_diff
+       write(iulog,*) 'om_tkdry    = ',         this%om_tkdry
+       write(iulog,*) 'om_tkwet    = ',         this%om_tkwet
+       
     end if
 
     !
