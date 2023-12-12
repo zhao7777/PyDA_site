@@ -215,7 +215,8 @@ module pftconMod
      real(r8) :: thetas_intercept ! Intercept of %Sand vs. porosity 
      real(r8) :: b_intercept      ! Intercept of %Clay vs. retention curve slope 
      real(r8) :: b_slope          ! Slope of %Clay vs. retention curve slope 
-
+     real(r8) :: h2o_canopy_max   ! max water storage canopy, kg/m2
+     
      ! added parameters - MK, related to organic matter properties
      real(r8) :: om_thetas_surf         ! porosity @ surface   
      real(r8) :: om_b_surf         ! b @ surface    
@@ -1013,6 +1014,9 @@ contains
     call ncd_io('log_psis_intercept', this%psis_intercept, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
 
+    call ncd_io('h2o_canopy_max', this%h2o_canopy_max, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
     ! organic parameters
     call ncd_io('om_thetas_surf', this%om_thetas_surf, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
@@ -1053,6 +1057,7 @@ contains
        write(iulog,*) 'ks_intercept    = ',     this%ks_intercept
        write(iulog,*) 'psis_slope    = ',     this%psis_slope
        write(iulog,*) 'psis_intercept    = ',     this%psis_intercept
+       write(iulog,*) 'h2o_canopy_max    = ',     this%h2o_canopy_max
        
        write(iulog,*) '------Organic soil property parameters:------'
        write(iulog,*) 'om_thetas_surf    = ',         this%om_thetas_surf

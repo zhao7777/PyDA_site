@@ -13,7 +13,9 @@ module CanopyStateType
   use clm_varctl      , only : iulog, use_cn, use_fates, use_hydrstress
   use LandunitType    , only : lun                
   use ColumnType      , only : col                
-  use PatchType       , only : patch                
+  use PatchType       , only : patch        
+  use pftconMod       , only : pftcon  !MK: added for canopy water storage parameter
+
   !
   implicit none
   save
@@ -497,6 +499,8 @@ contains
   !-----------------------------------------------------------------------
   subroutine InitCold(this, bounds)
     !
+    ! !USES:
+    use spmdMod    , only : masterproc
     ! !ARGUMENTS:
     class(canopystate_type) :: this
     type(bounds_type), intent(in) :: bounds  
@@ -504,7 +508,12 @@ contains
     ! !LOCAL VARIABLES:
     integer  :: p,l,c,g 
     !-----------------------------------------------------------------------
-
+    if (masterproc) then
+       write(iulog,*) '------Canopy parameters:------'
+       write(iulog,*) 'h2o_canopy_max    = ',         pftcon%h2o_canopy_max 
+       write(iulog,*) '------------------------------'
+    end if   
+       
     do p = bounds%begp, bounds%endp
        l = patch%landunit(p)
 
@@ -515,7 +524,8 @@ contains
        this%esai_patch(p)       = 0._r8
        this%htop_patch(p)       = 0._r8
        this%hbot_patch(p)       = 0._r8
-       this%dewmx_patch(p)      = 0.1_r8
+       !this%dewmx_patch(p)      = 0.1_r8
+       this%dewmx_patch(p)      = pftcon%h2o_canopy_max 
        this%vegwp_patch(p,:)    = -2.5e4_r8
 
        if (lun%itype(l) == istsoil .or. lun%itype(l) == istcrop) then
