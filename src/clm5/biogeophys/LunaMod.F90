@@ -34,7 +34,7 @@ module LunaMod
   
   !------------------------------------------------------------------------------
   ! PRIVATE MEMBER FUNCTIONS:
-  public  :: LunaReadNML                                   !subroutine to read in the Luna namelist
+  !public  :: LunaReadNML                                   !subroutine to read in the Luna namelist
   public  :: Update_Photosynthesis_Capacity                !subroutine to update the canopy nitrogen profile
   public  :: Acc24_Climate_LUNA                            !subroutine to accumulate 24 hr climates
   public  :: Acc240_Climate_LUNA                           !subroutine to accumulate 10 day climates
@@ -64,10 +64,10 @@ module LunaMod
   real(r8), parameter :: CO2ref = 380.0_r8                   ! reference CO2 concentration for calculation of reference NUE. 
   real(r8), parameter :: forc_pbot_ref = 101325.0_r8       ! reference air pressure for calculation of reference NUE
   real(r8), parameter :: Q10Enz = 2.0_r8                   ! Q10 value for enzyme decay rate
-  real(r8), parameter :: Jmaxb0 = 0.0311_r8                ! the baseline proportion of nitrogen allocated for electron transport (J)     
-  real(r8)            :: Jmaxb1 = 0.1_r8                   ! the baseline proportion of nitrogen allocated for electron transport (J)    
-  real(r8), parameter :: Wc2Wjb0 = 0.8054_r8               ! the baseline ratio of rubisco limited rate vs light limited photosynthetic rate (Wc:Wj) 
-  real(r8), parameter :: relhExp = 6.0999_r8               ! electron transport parameters related to relative humidity
+  !real(r8), parameter :: Jmaxb0 = 0.0311_r8                ! the baseline proportion of nitrogen allocated for electron transport (J)     
+  !real(r8)            :: Jmaxb1 = 0.1_r8                   ! the baseline proportion of nitrogen allocated for electron transport (J)    
+  !real(r8), parameter :: Wc2Wjb0 = 0.8054_r8               ! the baseline ratio of rubisco limited rate vs light limited photosynthetic rate (Wc:Wj) 
+  !real(r8), parameter :: relhExp = 6.0999_r8               ! electron transport parameters related to relative humidity
   real(r8), parameter :: Enzyme_turnover_daily = 0.1_r8    ! the daily turnover rate for photosynthetic enzyme at 25oC in view of ~7 days of half-life time for Rubisco (Suzuki et al. 2001)
   real(r8), parameter :: NMCp25 = 0.715_r8                 ! estimated by assuming 80% maintenance respiration is used for photosynthesis enzyme maintenance
   real(r8), parameter :: Trange1 = 5.0_r8                  ! lower temperature limit (oC) for nitrogen optimization  
@@ -82,65 +82,6 @@ module LunaMod
   !------------------------------------------------------------------------------
   
   contains
-
-  !********************************************************************************************************************************************************************** 
-  ! Read in LUNA namelist
-  subroutine LunaReadNML( NLFilename )
-    !
-    ! !DESCRIPTION:
-    ! Read the namelist for LUNA
-    !
-    ! !USES:
-    use fileutils      , only : getavu, relavu, opnfil
-    use shr_nl_mod     , only : shr_nl_find_group_name
-    use spmdMod        , only : masterproc, mpicom
-    use shr_mpi_mod    , only : shr_mpi_bcast
-    use clm_varctl     , only : iulog
-    use shr_log_mod    , only : errMsg => shr_log_errMsg
-    use abortutils     , only : endrun
-    !
-    ! !ARGUMENTS:
-    character(len=*), intent(in) :: NLFilename ! Namelist filename
-    !
-    ! !LOCAL VARIABLES:
-    integer :: ierr                 ! error code
-    integer :: unitn                ! unit for namelist file
-
-    character(len=*), parameter :: subname = 'lunaReadNML'
-    character(len=*), parameter :: nmlname = 'luna'
-    !-----------------------------------------------------------------------
-    namelist /luna/ Jmaxb1
-
-    ! Initialize options to default values, in case they are not specified in
-    ! the namelist
-
-
-    if (masterproc) then
-       unitn = getavu()
-       write(iulog,*) 'Read in '//nmlname//'  namelist'
-       call opnfil (NLFilename, unitn, 'F')
-       call shr_nl_find_group_name(unitn, nmlname, status=ierr)
-       if (ierr == 0) then
-          read(unitn, nml=luna, iostat=ierr)
-          if (ierr /= 0) then
-             call endrun(msg="ERROR reading "//nmlname//"namelist"//errmsg(__FILE__, __LINE__))
-          end if
-       else
-          call endrun(msg="ERROR could NOT find "//nmlname//"namelist"//errmsg(__FILE__, __LINE__))
-       end if
-       call relavu( unitn )
-    end if
-
-    call shr_mpi_bcast (Jmaxb1, mpicom)
-
-    if (masterproc) then
-       write(iulog,*) ' '
-       write(iulog,*) nmlname//' settings:'
-       write(iulog,nml=luna)
-       write(iulog,*) ' '
-    end if
-
-  end subroutine lunaReadNML
 
   !********************************************************************************************************************************************************************** 
   ! this subroutine updates the photosynthetic capacity as determined by Vcmax25 and Jmax25
@@ -268,6 +209,10 @@ module LunaMod
     rh10_p	  => waterstate_inst%rh10_af_patch                    , & ! Input:  [real(r8) (:)   ] 10-day mean canopy air relative humidity at the pacth (unitless)
     rb10_p        => frictionvel_inst%rb10_patch                      , & ! Input:  [real(r8) (:)   ] 10-day mean boundary layer resistance at the pacth (s/m)
     gpp_day       => photosyns_inst%fpsn24_patch                      , & ! Input:  [real(r8) (:)   ] patch 24 hours mean gpp(umol CO2/m**2 ground/day) for canopy layer
+    param_jmaxb0  => pftcon%Jmaxb0                                    , & ! MK: Input, jmaxb0  
+    param_jmaxb1  => pftcon%Jmaxb1                                    , & ! jmaxb1
+    param_tcj0    => pftcon%Wc2Wjb0                                   , & ! Wc2Wjb0
+    param_H       => pftcon%relhExp                                   , & ! relhExp
     vcmx25_z      => photosyns_inst%vcmx25_z_patch                    , & ! Output: [real(r8) (:,:) ] patch leaf Vc,max25 (umol/m2 leaf/s) for canopy layer 
     jmx25_z       => photosyns_inst%jmx25_z_patch                     , & ! Output: [real(r8) (:,:) ] patch leaf Jmax25 (umol electron/m**2/s) for canopy layer
     pnlc_z        => photosyns_inst%pnlc_z_patch                      , & ! Output: [real(r8) (:,:) ] patch proportion of leaf nitrogen allocated for light capture for canopy layer 
@@ -367,7 +312,7 @@ module LunaMod
                          PNcbold   = 0.0_r8                                     
                          call NitrogenAllocation(FNCa,forc_pbot10(p), relh10, CO2a10, O2a10, PARi10, PARimx10, rb10v, hourpd, &
                               tair10, tleafd10, tleafn10, &
-                              Jmaxb0, Jmaxb1, Wc2Wjb0, relhExp, PNlcold, PNetold, PNrespold, &
+                              param_jmaxb0, param_jmaxb1, param_tcj0, param_H, PNlcold, PNetold, PNrespold, &
                               PNcbold, PNstoreopt, PNlcopt, PNetopt, PNrespopt, PNcbopt)
                          vcmx25_opt= PNcbopt * FNCa * Fc25
                          jmx25_opt= PNetopt * FNCa * Fj25
@@ -999,11 +944,15 @@ subroutine Nitrogen_investments (KcKjFlag, FNCa, Nlc, forc_pbot10, relh10, &
   real(r8) :: Wj                                      !light limited photosynthetic rate (umol/m2/s)
   real(r8) :: NUECHG                                  !the nitrogen use efficiency change under current conidtions compared to reference climate conditions (25oC and 385 ppm )
   real(r8), parameter :: leaf_mr_vcm = 0.015_r8       !Scalar constant of leaf respiration with Vcmax (should use parameter in CanopyStateMod)
-  
+    
+  associate(                                                          &
+  param_jmaxb0  => pftcon%Jmaxb0                                      & ! MK: Input, jmaxb0  
+  )  
+
   theta_cj = 0.95_r8
   theta = 0.292_r8 / (1.0_r8 + 0.076_r8 / (Nlc * Cb))
   ELTRNabsorb = theta * PARi10
-  Jmaxb0act = Jmaxb0 * FNCa * Fj
+  Jmaxb0act = param_jmaxb0 * FNCa * Fj
   Jmax = Jmaxb0act + JmaxCoef * ELTRNabsorb
   JmaxL = theta * PARimx10 / (sqrt(1.0_r8 + (theta * PARimx10 / Jmax)**2.0_r8))        
   NUEchg = (NUEc / NUEcref) * (NUEjref / NUEj)
@@ -1024,6 +973,8 @@ subroutine Nitrogen_investments (KcKjFlag, FNCa, Nlc, forc_pbot10, relh10, &
   Net = Jmax / Fj
   Ncb = Vcmax / Fc
   Nresp = RESP / NUEr
+
+  end associate
 
 end subroutine Nitrogen_investments
 

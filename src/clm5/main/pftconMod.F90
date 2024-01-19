@@ -217,6 +217,11 @@ module pftconMod
      real(r8) :: b_slope          ! Slope of %Clay vs. retention curve slope 
      real(r8) :: h2o_canopy_max   ! max water storage canopy, kg/m2
      
+     real(r8) :: Jmaxb0   ! the baseline proportion of nitrogen allocated for electron transport (J)
+     real(r8) :: Jmaxb1   ! the baseline proportion of nitrogen allocated for electron transport (J)    
+     real(r8) :: Wc2Wjb0   ! the baseline ratio of rubisco limited rate vs light limited photosynthetic rate (Wc:Wj) 
+     real(r8) :: relhExp   ! electron transport parameters related to relative humidity
+     
      ! added parameters - MK, related to organic matter properties
      real(r8) :: om_thetas_surf         ! porosity @ surface   
      real(r8) :: om_b_surf         ! b @ surface    
@@ -1017,6 +1022,20 @@ contains
     call ncd_io('h2o_canopy_max', this%h2o_canopy_max, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
 
+
+    call ncd_io('Jmaxb0', this%Jmaxb0, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('Jmaxb1', this%Jmaxb1, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('Wc2Wjb0', this%Wc2Wjb0, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('relhExp', this%relhExp, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    
     ! organic parameters
     call ncd_io('om_thetas_surf', this%om_thetas_surf, 'read', ncid, readvar=readv)
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
@@ -1058,6 +1077,12 @@ contains
        write(iulog,*) 'psis_slope    = ',     this%psis_slope
        write(iulog,*) 'psis_intercept    = ',     this%psis_intercept
        write(iulog,*) 'h2o_canopy_max    = ',     this%h2o_canopy_max
+       
+       write(iulog,*) '------Photosynthesis parameters:------'
+       write(iulog,*) 'Jmaxb0    = ',     this%Jmaxb0
+       write(iulog,*) 'Jmaxb1    = ',     this%Jmaxb1
+       write(iulog,*) 'Wc2Wjb0    = ',     this%Wc2Wjb0
+       write(iulog,*) 'relhExp    = ',     this%relhExp
        
        write(iulog,*) '------Organic soil property parameters:------'
        write(iulog,*) 'om_thetas_surf    = ',         this%om_thetas_surf
