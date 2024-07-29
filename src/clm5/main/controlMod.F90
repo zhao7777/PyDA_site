@@ -116,7 +116,7 @@ contains
     use clm_time_manager                 , only : set_timemgr_init
     use fileutils                        , only : getavu, relavu
     use CNMRespMod                       , only : CNMRespReadNML
-    use LunaMod                          , only : LunaReadNML
+    !use LunaMod                          , only : LunaReadNML
     use FrictionVelocityMod              , only : FrictionVelReadNML
     use CNNDynamicsMod                   , only : CNNDynamicsReadNML
     use SoilBiogeochemDecompCascadeBGCMod, only : DecompCascadeBGCreadNML
@@ -465,7 +465,7 @@ contains
     call SnowHydrology_readnl   ( NLFilename )
     call UrbanReadNML           ( NLFilename )
     call HumanIndexReadNML      ( NLFilename )
-    call LunaReadNML            ( NLFilename )
+    !call LunaReadNML            ( NLFilename )
     call FrictionVelReadNML     ( NLFilename )
 
     ! ----------------------------------------------------------------------

@@ -205,6 +205,34 @@ module pftconMod
      real(r8), allocatable :: pprod100      (:)   ! proportion of deadstem to 100-yr product pool
      real(r8), allocatable :: pprodharv10   (:)   ! harvest mortality proportion of deadstem to 10-yr pool
 
+     ! added parameters - MK
+     real(r8) :: fff         ! Soil hydrology parameter: decay factor for fractional saturated area (1/m)     
+     real(r8) :: psis_slope      ! Slope of %Sand vs. soil matric potential 
+     real(r8) :: psis_intercept  ! Intercept of %Sand vs. soil matric potential
+     real(r8) :: ks_slope        ! Slope of %Sand vs. hydraulic conductivity
+     real(r8) :: ks_intercept    ! Intercept of %Sand vs. hydraulic conductivity
+     real(r8) :: thetas_slope    ! Slope of %Sand vs. porosity
+     real(r8) :: thetas_intercept ! Intercept of %Sand vs. porosity 
+     real(r8) :: b_intercept      ! Intercept of %Clay vs. retention curve slope 
+     real(r8) :: b_slope          ! Slope of %Clay vs. retention curve slope 
+     real(r8) :: h2o_canopy_max   ! max water storage canopy, kg/m2
+     
+     real(r8) :: Jmaxb0   ! the baseline proportion of nitrogen allocated for electron transport (J)
+     real(r8) :: Jmaxb1   ! the baseline proportion of nitrogen allocated for electron transport (J)    
+     real(r8) :: Wc2Wjb0   ! the baseline ratio of rubisco limited rate vs light limited photosynthetic rate (Wc:Wj) 
+     real(r8) :: relhExp   ! electron transport parameters related to relative humidity
+     
+     ! added parameters - MK, related to organic matter properties
+     real(r8) :: om_thetas_surf         ! porosity @ surface   
+     real(r8) :: om_b_surf         ! b @ surface    
+     real(r8) :: om_psis_surf         ! suction @ surface      
+     real(r8) :: om_ks_surf         ! hydraulic conductivity @ surface    
+     real(r8) :: om_thetas_diff         ! decrease in porosity deeper in column (defined by zsapric)    
+     real(r8) :: om_b_diff         ! increase in b deeper in column    
+     real(r8) :: om_psis_diff         ! decrease in psi deeper in column    
+     real(r8) :: om_tkdry         ! thermal conductivity of dry organic soil [W/m/K]      
+     real(r8) :: om_tkwet         ! thermal conductivity of saturated organic soil [W/m/K]  
+
      ! pft paraemeters for fire code
      real(r8), allocatable :: cc_leaf       (:)
      real(r8), allocatable :: cc_lstem      (:)
@@ -962,6 +990,112 @@ contains
 
     call ncd_io('max_SH_planting_date', this%mxSHplantdate, 'read', ncid, readvar=readv)  
     if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    ! added parameters - MK
+    call ncd_io('fff', this%fff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('b_slope', this%b_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('b_intercept', this%b_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('thetas_slope', this%thetas_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('thetas_intercept', this%thetas_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('log_ks_slope', this%ks_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('log_ks_intercept', this%ks_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('log_psis_slope', this%psis_slope, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+    call ncd_io('log_psis_intercept', this%psis_intercept, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('h2o_canopy_max', this%h2o_canopy_max, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+
+    call ncd_io('Jmaxb0', this%Jmaxb0, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('Jmaxb1', this%Jmaxb1, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('Wc2Wjb0', this%Wc2Wjb0, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('relhExp', this%relhExp, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    
+    ! organic parameters
+    call ncd_io('om_thetas_surf', this%om_thetas_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_b_surf', this%om_b_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_psis_surf', this%om_psis_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_ks_surf', this%om_ks_surf, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_thetas_diff', this%om_thetas_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_b_diff', this%om_b_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_psis_diff', this%om_psis_diff, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+    
+    call ncd_io('om_tkdry', this%om_tkdry, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+
+    call ncd_io('om_tkwet', this%om_tkwet, 'read', ncid, readvar=readv)
+    if ( .not. readv ) call endrun(msg=' ERROR: error in reading in pft data'//errMsg(sourcefile, __LINE__))
+   
+
+    if (masterproc) then
+       write(iulog,*) '------Hydraulic property parameters:------'
+       write(iulog,*) 'fff    = ',         this%fff
+       write(iulog,*) 'b_slope    = ',     this%b_slope
+       write(iulog,*) 'b_intercept    = ',     this%b_intercept
+       write(iulog,*) 'thetas_slope    = ',     this%thetas_slope
+       write(iulog,*) 'thetas_intercept    = ',     this%thetas_intercept
+       write(iulog,*) 'ks_slope    = ',     this%ks_slope
+       write(iulog,*) 'ks_intercept    = ',     this%ks_intercept
+       write(iulog,*) 'psis_slope    = ',     this%psis_slope
+       write(iulog,*) 'psis_intercept    = ',     this%psis_intercept
+       write(iulog,*) 'h2o_canopy_max    = ',     this%h2o_canopy_max
+       
+       write(iulog,*) '------Photosynthesis parameters:------'
+       write(iulog,*) 'Jmaxb0    = ',     this%Jmaxb0
+       write(iulog,*) 'Jmaxb1    = ',     this%Jmaxb1
+       write(iulog,*) 'Wc2Wjb0    = ',     this%Wc2Wjb0
+       write(iulog,*) 'relhExp    = ',     this%relhExp
+       
+       write(iulog,*) '------Organic soil property parameters:------'
+       write(iulog,*) 'om_thetas_surf    = ',         this%om_thetas_surf
+       write(iulog,*) 'om_b_surf    = ',         this%om_b_surf
+       write(iulog,*) 'om_psis_surf    = ',         this%om_psis_surf
+       write(iulog,*) 'om_ks_surf    = ',         this%om_ks_surf
+       write(iulog,*) 'om_thetas_diff    = ',         this%om_thetas_diff
+       write(iulog,*) 'om_b_diff    = ',         this%om_b_diff
+       write(iulog,*) 'om_psis_diff    = ',         this%om_psis_diff
+       write(iulog,*) 'om_tkdry    = ',         this%om_tkdry
+       write(iulog,*) 'om_tkwet    = ',         this%om_tkwet
+       
+    end if
 
     !
     ! Constants
