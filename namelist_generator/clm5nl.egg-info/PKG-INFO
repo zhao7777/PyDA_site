@@ -1,0 +1,12 @@
+Metadata-Version: 2.2
+Name: clm5nl
+Version: 0.6
+Summary: CLM5 namelist generator
+Author: kvrigor
+Author-email: kvrigor@users.noreply.github.com
+License: MIT
+Classifier: Development Status :: 3 - Alpha
+Classifier: Programming Language :: Python
+Requires-Dist: importlib-metadata; python_version < "3.8"
+Requires-Dist: docopt
+Requires-Dist: toml
